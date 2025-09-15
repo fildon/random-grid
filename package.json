@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --outfile=dist/index.js --minify --sourcemap && shx cp index.html dist/index.html"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.9",
+    "shx": "^0.4.0",
+    "typescript": "^5.9.2"
+  }
+}
