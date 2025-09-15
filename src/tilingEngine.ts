@@ -18,8 +18,8 @@ const isEqual = (a: { x: number; y: number }, b: { x: number; y: number }) => {
 
 export const generateTiles = (): Array<Tile> => {
   let availableLocations: Array<{ x: number; y: number }> = [];
-  for (let x = 0; x <= 10; x++) {
-    for (let y = 0; y <= 10; y++) {
+  for (let x = 0; x < 10; x++) {
+    for (let y = 0; y < 10; y++) {
       availableLocations.push({ x, y });
     }
   }
