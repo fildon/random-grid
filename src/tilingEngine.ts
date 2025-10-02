@@ -65,7 +65,11 @@ class Tiling {
   generateChildren(): Array<Tiling> {
     // Find the most tightly controlled position
     // We should generate only as many children as we have choices at the most tightly controlled position
-    const freePositions = this.freePositions();
+    const freePositions = this.freePositions()
+      // We do a little shuffle here to ensure we get different results each time
+      .map(value => ({ value, rank: Math.random() }))
+      .toSorted((a, b) => a.rank - b.rank)
+      .map(({ value }) => value);
     if (freePositions.length === 0) {
       return [];
     }
@@ -112,11 +116,14 @@ class TileTreeWalkNode {
   ) {}
 }
 
-export const generateTiles = (): Array<Tile> => {
+export function* initTileGenerator(): Generator<Array<Tile>, Array<Tile>, unknown> {
   const root = new TileTreeWalkNode(null, new Tiling(20, 20, []));
   let pointer = root;
 
   while (!pointer.tiling.isComplete()) {
+    // Yield the current pointer state
+    yield pointer.tiling.tiles;
+
     if (!pointer.viable) {
       // Backtrack to parent
       pointer = pointer.parent!;
@@ -148,4 +155,4 @@ export const generateTiles = (): Array<Tile> => {
 
   // We have found a complete tiling
   return pointer.tiling.tiles;
-};
+}
