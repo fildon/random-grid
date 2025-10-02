@@ -16,8 +16,8 @@ const renderTile = (
   const maxX = Math.max(tile.tilePosition[0].x, tile.tilePosition[1].x);
   const maxY = Math.max(tile.tilePosition[0].y, tile.tilePosition[1].y);
 
-  const topLeft = { x: minX * 100, y: minY * 100 };
-  const bottomRight = { x: maxX * 100 + 100, y: maxY * 100 + 100 };
+  const topLeft = { x: minX * 50, y: minY * 50 };
+  const bottomRight = { x: maxX * 50 + 50, y: maxY * 50 + 50 };
 
   context.strokeStyle = "black";
   context.lineWidth = 2;

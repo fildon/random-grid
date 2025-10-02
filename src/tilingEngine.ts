@@ -8,8 +8,7 @@ class Position {
 export class Tile {
   constructor(public tilePosition: [Position, Position]) {}
   overlaps(other: Tile): boolean {
-    const [a, b] = this.tilePosition;
-    return other.tilePosition.some((pos) => a.isEqual(pos) || b.isEqual(pos));
+    return other.tilePosition.some((a) => this.tilePosition.some((b) => b.isEqual(a)));
   }
 }
 
@@ -20,22 +19,44 @@ class Tiling {
     public tiles: Array<Tile>
   ) {}
 
+  occupiedPositions(): Array<Position> {
+    return this.tiles.flatMap((tile) => tile.tilePosition);
+  }
+
+  isInBounds(position: Position): boolean {
+    return (
+      position.x >= 0 &&
+      position.x < this.width &&
+      position.y >= 0 &&
+      position.y < this.height
+    );
+  }
+
+  isFreePosition(position: Position): boolean {
+    return (
+      this.isInBounds(position) &&
+      !this.occupiedPositions().some((p) => p.isEqual(position))
+    );
+  }
+
+  freePositions(): Array<Position> {
+    const positions: Array<Position> = [];
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        const newPosition = new Position(x, y);
+        if (this.isFreePosition(newPosition)) {
+          positions.push(newPosition);
+        }
+      }
+    }
+    return positions;
+  }
+
   /**
-   * Is the given tile a valid addition to this tiling?
+   * A tiling is complete when every position is occupied
    */
-  canPlaceTile(newTile: Tile): boolean {
-    // We can place a tile if it doesn't overlap existing tiles
-    const hasOverlap = this.tiles.some((existingTile) =>
-      newTile.overlaps(existingTile)
-    );
-
-    // And if it's within bounds
-    const withinBounds = newTile.tilePosition.every(
-      (pos) =>
-        pos.x >= 0 && pos.x < this.width && pos.y >= 0 && pos.y < this.height
-    );
-
-    return !hasOverlap && withinBounds;
+  isComplete(): boolean {
+    return this.occupiedPositions().length === this.width * this.height;
   }
 
   /**
@@ -71,63 +92,8 @@ class Tiling {
 
     return bestFreeNeighbours.map((neighbour) => {
       const newTile = new Tile([bestPosition!, neighbour]);
-      if (!this.canPlaceTile(newTile)) {
-        throw new Error("Logic error: cannot place tile");
-      }
       return new Tiling(this.width, this.height, [...this.tiles, newTile]);
     });
-  }
-
-  occupiedPositions(): Array<Position> {
-    return this.tiles.flatMap((tile) => tile.tilePosition);
-  }
-
-  isInBounds(position: Position): boolean {
-    return (
-      position.x >= 0 &&
-      position.x < this.width &&
-      position.y >= 0 &&
-      position.y < this.height
-    );
-  }
-
-  isFreePosition(position: Position): boolean {
-    return this.isInBounds(position) && !this.occupiedPositions().some((p) => p.isEqual(position));
-  }
-
-  freePositions(): Array<Position> {
-    const positions: Array<Position> = [];
-    for (let x = 0; x < this.width; x++) {
-      for (let y = 0; y < this.height; y++) {
-        const newPosition = new Position(x, y);
-        if (this.isFreePosition(newPosition)) {
-          positions.push(newPosition);
-        }
-      }
-    }
-    return positions;
-  }
-
-  /**
-   * A tiling is complete when every position is occupied
-   */
-  isComplete(): boolean {
-    return this.occupiedPositions().length === this.width * this.height;
-  }
-
-  /**
-   * If everything is working correctly, this always returns false.
-   * But it is useful for debugging.
-   */
-  hasOverlaps(): boolean {
-    for (let i = 0; i < this.tiles.length; i++) {
-      for (let j = i + 1; j < this.tiles.length; j++) {
-        if (this.tiles[i].overlaps(this.tiles[j])) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 }
 
@@ -144,22 +110,10 @@ class TileTreeWalkNode {
     // // Whether this node can possibly lead to a solution
     public viable: boolean = true
   ) {}
-  countVisited(): number {
-    return (
-      (this.visited ? 1 : 0) +
-      this.children.reduce((sum, child) => sum + child.countVisited(), 0)
-    );
-  }
-  countViable(): number {
-    return (
-      (this.viable ? 1 : 0) +
-      this.children.reduce((sum, child) => sum + child.countViable(), 0)
-    );
-  }
 }
 
 export const generateTiles = (): Array<Tile> => {
-  const root = new TileTreeWalkNode(null, new Tiling(10, 10, []));
+  const root = new TileTreeWalkNode(null, new Tiling(20, 20, []));
   let pointer = root;
 
   while (!pointer.tiling.isComplete()) {
