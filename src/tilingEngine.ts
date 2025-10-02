@@ -66,56 +66,74 @@ class Tiling {
 
     return childTiles.map(
       // Advancing here is an optimizing to skip a lot of thin branches
-      (tile) => new Tiling(this.width, this.height, [...this.tiles, tile]).advanceTrivialTiles()
-    ).filter((tiling): tiling is Tiling => tiling !== null);
+      (tile) => new Tiling(this.width, this.height, [...this.tiles, tile]).advanceTrivialState()
+    );
+  }
+
+  occupiedPositions(): Array<Position> {
+    return this.tiles.flatMap((tile) => tile.tilePosition);
+  }
+
+  isFreePosition(position: Position): boolean {
+    return !this.occupiedPositions().some((p) => p.isEqual(position));
+  }
+
+  freePositions(): Array<Position> {
+    const positions: Array<Position> = [];
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        const newPosition = new Position(x, y);
+        if (this.isFreePosition(newPosition)) {
+          positions.push(newPosition);
+        }
+      }
+    }
+    return positions;
   }
 
   /**
    * Advance the current tiling by inserting trivial tiles where only one option exists
-   *
-   * In some cases this can uncover that the current state is non-viable, in which case we return null
+   * 
+   * Warning this mutates the current tiling, and also returns itself for convenience
    */
-  advanceTrivialTiles(): Tiling | null {
-    // TODO review
-    // Find positions with three occupied neighbours
-    const positions = this.tiles.flatMap((tile) => tile.tilePosition);
-    const counts = new Map<string, number>();
-    for (const pos of positions) {
-      const key = `${pos.x},${pos.y}`;
-      counts.set(key, (counts.get(key) || 0) + 1);
+  advanceTrivialState(): Tiling {
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        const newPosition = new Position(x, y);
+        
+        // Only consider this position if it's actually free
+        if (!this.isFreePosition(newPosition)) {
+          continue;
+        }
+        
+        const freeNeighbours = [
+          new Position(x - 1, y),
+          new Position(x + 1, y),
+          new Position(x, y - 1),
+          new Position(x, y + 1),
+        ].filter(neighbour => this.isFreePosition(neighbour));
+        
+        if (freeNeighbours.length === 1) {
+          const newTile = new Tile([newPosition, freeNeighbours[0]]);
+
+          // Mutate self
+          this.tiles.push(newTile);
+
+          // Recurse to continue advancing
+          return this.advanceTrivialState();
+        }
+      }
     }
 
-    // Find all positions with exactly three occupied neighbours
-    const candidates = Array.from(counts.entries())
-      .filter(([_, count]) => count === 3)
-      .map(([key]) => {
-        const [x, y] = key.split(",").map(Number);
-        return new Position(x, y);
-      });
-
-    // If we have no candidates, there's nothing to do
-    if (candidates.length === 0) {
-      return this;
-    }
-
-    // Otherwise, we need to create new tiles for each candidate
-    const newTiles = candidates.map((pos) => {
-      const tile = new Tile([pos, new Position(pos.x + 1, pos.y)]);
-      return tile;
-    });
-
-    // Create a new Tiling with the new tiles added
-    return new Tiling(this.width, this.height, [...this.tiles, ...newTiles]);
+    // No further advances to apply
+    return this;
   }
 
   /**
-   * A tiling is complete when every position is occupied by a tile
+   * A tiling is complete when every position is occupied
    */
   isComplete(): boolean {
-    // WARNING: this will never be true for odd width*height
-    // This is a little trick because we know each tile covers 2 squares
-    // and there are no overlaps
-    return this.tiles.length === (this.width * this.height) / 2;
+    return this.occupiedPositions().length === (this.width * this.height);
   }
 
   hasOverlaps(): boolean {
