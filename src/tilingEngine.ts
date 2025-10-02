@@ -116,8 +116,8 @@ class TileTreeWalkNode {
   ) {}
 }
 
-export function* initTileGenerator(): Generator<Array<Tile>, Array<Tile>, unknown> {
-  const root = new TileTreeWalkNode(null, new Tiling(20, 20, []));
+export function* initTileGenerator(width: number, height: number): Generator<Array<Tile>, Array<Tile>, unknown> {
+  const root = new TileTreeWalkNode(null, new Tiling(width, height, []));
   let pointer = root;
 
   while (!pointer.tiling.isComplete()) {
