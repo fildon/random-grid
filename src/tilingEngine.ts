@@ -39,47 +39,60 @@ class Tiling {
   }
 
   /**
-   * The collection of all tilings produceable by adding one more tile to this tiling
+   * Walk one step down the tree of possible tilings
    */
   generateChildren(): Array<Tiling> {
-    const childTiles: Array<Tile> = [];
+    // Find the most tightly controlled position
+    // We should generate only as many children as we have choices at the most tightly controlled position
+    const freePositions = this.freePositions();
+    if (freePositions.length === 0) {
+      return [];
+    }
 
-    // We'll try placing a tile in every possible position both horizontally and vertically
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        const horizontalTile = new Tile([
-          new Position(x, y),
-          new Position(x + 1, y),
-        ]);
-        if (this.canPlaceTile(horizontalTile)) {
-          childTiles.push(horizontalTile);
-        }
-        const verticalTile = new Tile([
-          new Position(x, y),
-          new Position(x, y + 1),
-        ]);
-        if (this.canPlaceTile(verticalTile)) {
-          childTiles.push(verticalTile);
-        }
+    // Find the position with the fewest free neighbours
+    let bestPosition: Position | null = null;
+    let bestFreeNeighbours: Array<Position> = [];
+    for (const position of freePositions) {
+      const freeNeighbours = [
+        new Position(position.x - 1, position.y),
+        new Position(position.x + 1, position.y),
+        new Position(position.x, position.y - 1),
+        new Position(position.x, position.y + 1),
+      ].filter((neighbour) => this.isFreePosition(neighbour));
+
+      if (
+        bestPosition === null ||
+        freeNeighbours.length < bestFreeNeighbours.length
+      ) {
+        bestPosition = position;
+        bestFreeNeighbours = freeNeighbours;
       }
     }
 
-    return childTiles.map(
-      // Advancing here is an optimizing to skip a lot of thin branches
-      (tile) =>
-        new Tiling(this.width, this.height, [
-          ...this.tiles,
-          tile,
-        ]).advanceTrivialState()
-    );
+    return bestFreeNeighbours.map((neighbour) => {
+      const newTile = new Tile([bestPosition!, neighbour]);
+      if (!this.canPlaceTile(newTile)) {
+        throw new Error("Logic error: cannot place tile");
+      }
+      return new Tiling(this.width, this.height, [...this.tiles, newTile]);
+    });
   }
 
   occupiedPositions(): Array<Position> {
     return this.tiles.flatMap((tile) => tile.tilePosition);
   }
 
+  isInBounds(position: Position): boolean {
+    return (
+      position.x >= 0 &&
+      position.x < this.width &&
+      position.y >= 0 &&
+      position.y < this.height
+    );
+  }
+
   isFreePosition(position: Position): boolean {
-    return !this.occupiedPositions().some((p) => p.isEqual(position));
+    return this.isInBounds(position) && !this.occupiedPositions().some((p) => p.isEqual(position));
   }
 
   freePositions(): Array<Position> {
@@ -96,57 +109,16 @@ class Tiling {
   }
 
   /**
-   * Advance the current tiling by inserting trivial tiles where only one option exists
-   *
-   * Warning this mutates the current tiling, and also returns itself for convenience
-   */
-  advanceTrivialState(): Tiling {
-    for (let x = 0; x < this.width; x++) {
-      for (let y = 0; y < this.height; y++) {
-        const newPosition = new Position(x, y);
-
-        // Only consider this position if it's actually free
-        if (!this.isFreePosition(newPosition)) {
-          continue;
-        }
-
-        const freeNeighbours = [
-          new Position(x - 1, y),
-          new Position(x + 1, y),
-          new Position(x, y - 1),
-          new Position(x, y + 1),
-        ].filter(
-          (neighbour) =>
-            neighbour.x >= 0 &&
-            neighbour.x < this.width &&
-            neighbour.y >= 0 &&
-            neighbour.y < this.height &&
-            this.isFreePosition(neighbour)
-        );
-
-        if (freeNeighbours.length === 1) {
-          const newTile = new Tile([newPosition, freeNeighbours[0]]);
-
-          // Mutate self
-          this.tiles.push(newTile);
-
-          // Recurse to continue advancing
-          return this.advanceTrivialState();
-        }
-      }
-    }
-
-    // No further advances to apply
-    return this;
-  }
-
-  /**
    * A tiling is complete when every position is occupied
    */
   isComplete(): boolean {
     return this.occupiedPositions().length === this.width * this.height;
   }
 
+  /**
+   * If everything is working correctly, this always returns false.
+   * But it is useful for debugging.
+   */
   hasOverlaps(): boolean {
     for (let i = 0; i < this.tiles.length; i++) {
       for (let j = i + 1; j < this.tiles.length; j++) {
