@@ -1,5 +1,7 @@
 import type { Tile } from "./tilingEngine";
 
+const COLORS = ["silver", "gray"];
+
 export const renderTiles = (
   tiles: Array<Tile>,
   context: CanvasRenderingContext2D,
@@ -20,9 +22,11 @@ const renderTile = (
   const maxY = Math.max(tile.tilePosition[0].y, tile.tilePosition[1].y);
 
   const topLeft = { x: minX * cellSize, y: minY * cellSize };
-  const bottomRight = { x: maxX * cellSize + cellSize, y: maxY * cellSize + cellSize };
+  const bottomRight = {
+    x: maxX * cellSize + cellSize,
+    y: maxY * cellSize + cellSize,
+  };
 
-  context.strokeStyle = "black";
   context.lineWidth = 2;
   context.beginPath();
   context.roundRect(
@@ -32,7 +36,8 @@ const renderTile = (
     bottomRight.y - topLeft.y,
     10
   );
-  context.fillStyle = "rgba(0, 0, 0, 0.34)";
+  context.fillStyle = COLORS[tile.id % COLORS.length];
   context.fill();
+  context.strokeStyle = "black";
   context.stroke();
 };

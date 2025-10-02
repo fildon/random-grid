@@ -6,9 +6,14 @@ class Position {
 }
 
 export class Tile {
-  constructor(public tilePosition: [Position, Position]) {}
+  constructor(
+    public tilePosition: [Position, Position],
+    public id: number = Math.floor(Math.random() * 32)
+  ) {}
   overlaps(other: Tile): boolean {
-    return other.tilePosition.some((a) => this.tilePosition.some((b) => b.isEqual(a)));
+    return other.tilePosition.some((a) =>
+      this.tilePosition.some((b) => b.isEqual(a))
+    );
   }
 }
 
@@ -67,7 +72,7 @@ class Tiling {
     // We should generate only as many children as we have choices at the most tightly controlled position
     const freePositions = this.freePositions()
       // We do a little shuffle here to ensure we get different results each time
-      .map(value => ({ value, rank: Math.random() }))
+      .map((value) => ({ value, rank: Math.random() }))
       .toSorted((a, b) => a.rank - b.rank)
       .map(({ value }) => value);
     if (freePositions.length === 0) {
@@ -103,20 +108,23 @@ class Tiling {
 
 class TileTreeWalkNode {
   constructor(
-    // // Null for root
+    // Null for root
     public parent: TileTreeWalkNode | null,
-    // // Tiles placed so far
+    // Tiles placed so far
     public tiling: Tiling,
-    // // Each child differs by one additional tile
+    // Each child differs by one additional tile
     public children: Array<TileTreeWalkNode> = [],
-    // // Whether we have already explored this node
+    // Whether we have already explored this node
     public visited: boolean = false,
-    // // Whether this node can possibly lead to a solution
+    // Whether this node can possibly lead to a solution
     public viable: boolean = true
   ) {}
 }
 
-export function* initTileGenerator(width: number, height: number): Generator<Array<Tile>, Array<Tile>, unknown> {
+export function* initTileGenerator(
+  width: number,
+  height: number
+): Generator<Array<Tile>, Array<Tile>, unknown> {
   const root = new TileTreeWalkNode(null, new Tiling(width, height, []));
   let pointer = root;
 
