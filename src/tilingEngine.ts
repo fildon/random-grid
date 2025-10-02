@@ -66,7 +66,11 @@ class Tiling {
 
     return childTiles.map(
       // Advancing here is an optimizing to skip a lot of thin branches
-      (tile) => new Tiling(this.width, this.height, [...this.tiles, tile]).advanceTrivialState()
+      (tile) =>
+        new Tiling(this.width, this.height, [
+          ...this.tiles,
+          tile,
+        ]).advanceTrivialState()
     );
   }
 
@@ -93,26 +97,33 @@ class Tiling {
 
   /**
    * Advance the current tiling by inserting trivial tiles where only one option exists
-   * 
+   *
    * Warning this mutates the current tiling, and also returns itself for convenience
    */
   advanceTrivialState(): Tiling {
     for (let x = 0; x < this.width; x++) {
       for (let y = 0; y < this.height; y++) {
         const newPosition = new Position(x, y);
-        
+
         // Only consider this position if it's actually free
         if (!this.isFreePosition(newPosition)) {
           continue;
         }
-        
+
         const freeNeighbours = [
           new Position(x - 1, y),
           new Position(x + 1, y),
           new Position(x, y - 1),
           new Position(x, y + 1),
-        ].filter(neighbour => this.isFreePosition(neighbour));
-        
+        ].filter(
+          (neighbour) =>
+            neighbour.x >= 0 &&
+            neighbour.x < this.width &&
+            neighbour.y >= 0 &&
+            neighbour.y < this.height &&
+            this.isFreePosition(neighbour)
+        );
+
         if (freeNeighbours.length === 1) {
           const newTile = new Tile([newPosition, freeNeighbours[0]]);
 
@@ -133,7 +144,7 @@ class Tiling {
    * A tiling is complete when every position is occupied
    */
   isComplete(): boolean {
-    return this.occupiedPositions().length === (this.width * this.height);
+    return this.occupiedPositions().length === this.width * this.height;
   }
 
   hasOverlaps(): boolean {
