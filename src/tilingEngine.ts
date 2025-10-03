@@ -113,8 +113,18 @@ class Tiling {
     // Find the most tightly controlled position
     // We should generate only as many children as we have choices at the most tightly controlled position
     const freePositions = this.freePositions()
-      // We do a little shuffle here to ensure we get different results each time
-      .map((value) => ({ value, rank: Math.random() }))
+      .map((value) => ({
+        value,
+        rank:
+          // Random factor to break ties
+          Math.random() +
+          // Euclidean distance from center, negated to bias away from centre
+          -1 *
+            Math.sqrt(
+              Math.abs(value.x - this.width / 2) ** 2 +
+                Math.abs(value.y - this.height / 2) ** 2
+            ),
+      }))
       .toSorted((a, b) => a.rank - b.rank)
       .map(({ value }) => value);
     if (freePositions.length === 0) {
