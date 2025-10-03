@@ -65,6 +65,48 @@ class Tiling {
   }
 
   /**
+   * The set of free positions is connected.
+   *
+   * Notably we consider the empty set to be connected.
+   */
+  hasConnectedVacancy(): boolean {
+    const freePositions = this.freePositions();
+    if (freePositions.length === 0) {
+      return true;
+    }
+
+    // Flood fill from the first free position
+    const toVisit = [freePositions[0]];
+    const visited: Array<Position> = [];
+
+    while (toVisit.length > 0) {
+      const current = toVisit.pop()!;
+      if (visited.some((p) => p.isEqual(current))) {
+        continue;
+      }
+      visited.push(current);
+
+      // Add all 4 neighboring positions
+      const neighbors = [
+        new Position(current.x - 1, current.y),
+        new Position(current.x + 1, current.y),
+        new Position(current.x, current.y - 1),
+        new Position(current.x, current.y + 1),
+      ];
+      for (const neighbor of neighbors) {
+        if (
+          freePositions.some((p) => p.isEqual(neighbor)) &&
+          !visited.some((p) => p.isEqual(neighbor))
+        ) {
+          toVisit.push(neighbor);
+        }
+      }
+    }
+
+    return visited.length === freePositions.length;
+  }
+
+  /**
    * Walk one step down the tree of possible tilings
    */
   generateChildren(): Array<Tiling> {
@@ -127,17 +169,31 @@ export function* initTileGenerator(
 ): Generator<Array<Tile>, Array<Tile>, unknown> {
   const root = new TileTreeWalkNode(null, new Tiling(width, height, []));
   let pointer = root;
+  yield pointer.tiling.tiles;
 
   while (!pointer.tiling.isComplete()) {
     // Yield the current pointer state
-    yield pointer.tiling.tiles;
 
     if (!pointer.viable) {
       // Backtrack to parent
       pointer = pointer.parent!;
+      yield pointer.tiling.tiles;
 
       if (!pointer) {
         throw new Error("No complete tiling found");
+      }
+
+      // Accelerate backtracking until we find a node with connected vacancy
+      let hasConnectedVacancy = pointer.tiling.hasConnectedVacancy();
+      while (!hasConnectedVacancy) {
+        // Backtrack to parent
+        pointer.viable = false;
+        pointer = pointer.parent!;
+        yield pointer.tiling.tiles;
+        if (!pointer) {
+          throw new Error("No complete tiling found");
+        }
+        hasConnectedVacancy = pointer.tiling.hasConnectedVacancy();
       }
     }
 
@@ -159,6 +215,7 @@ export function* initTileGenerator(
 
     // Randomly pick a viable child
     pointer = viableChildren[Math.floor(Math.random() * viableChildren.length)];
+    yield pointer.tiling.tiles;
   }
 
   // We have found a complete tiling

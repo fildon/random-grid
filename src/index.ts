@@ -16,35 +16,35 @@ const paintRandomTiles = async () => {
   if (currentController) {
     currentController.abort();
   }
-  
+
   // Create new controller for this operation
   currentController = new AbortController();
   const signal = currentController.signal;
-  
+
   try {
     const tileGenerator = initTileGenerator(GRID_SIZE, GRID_SIZE);
     let result = tileGenerator.next();
     renderTiles(result.value, canvasContext, CELL_SIZE);
-    
+
     while (!result.done) {
       // Check if operation was cancelled
       if (signal.aborted) {
         return;
       }
-      
+
       await new Promise((resolve, reject) => {
         const timeoutId = setTimeout(resolve, 1);
-        signal.addEventListener('abort', () => {
+        signal.addEventListener("abort", () => {
           clearTimeout(timeoutId);
-          reject(new DOMException('Operation cancelled', 'AbortError'));
+          reject(new DOMException("Operation cancelled", "AbortError"));
         });
       });
-      
+
       result = tileGenerator.next();
       renderTiles(result.value, canvasContext, CELL_SIZE);
     }
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    if (error instanceof DOMException && error.name === "AbortError") {
       // Operation was cancelled, this is expected
       return;
     }
@@ -55,4 +55,3 @@ const paintRandomTiles = async () => {
 
 generateButton.addEventListener("click", paintRandomTiles);
 paintRandomTiles();
-
